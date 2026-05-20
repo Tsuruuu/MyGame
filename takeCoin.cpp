@@ -33,8 +33,9 @@ typedef struct {
 
 //グローバル変数
 char map[MAP_NUMBER][HEIGHT][WIDTH] = {
+	{//マップ0
 	"##################################",
-	"#......#.........................D",
+	"#......#.........................#",
 	"#......#....................######",
 	"#......#.........................#",
 	"#......########...........#......#",
@@ -44,14 +45,30 @@ char map[MAP_NUMBER][HEIGHT][WIDTH] = {
 	"#....................#........#..#",
 	"#....................#...........#",
 	"##################################"
+	},
+	//マップ0
+	{
+	"##################################",
+	"#................................#",
+	"#.....#...........#..............#",
+	"#.....#...........#..............#",
+	"#.....#......#####################",
+	"#.....#..........................#",
+	"#................................#",
+	"#########################........#",
+	"#................................#",
+	"#................................#",
+	"##################################"
+	}
 };
 
 int game_running = 1;	//ゲームの実行フラグ
 POS player;				//砲台の位置
 POS enemy[MAP_NUMBER][ENEMY_COUNT];	//敵の数と位置
 POS coin[MAP_NUMBER][COIN_COUNT];
-int coinAlive[COIN_COUNT]; //コインがマップに残っているかを表す。1:まだある　0:取った
+int coinAlive[MAP_NUMBER][COIN_COUNT]; //コインがマップに残っているかを表す。1:まだある　0:取った
 int currentMap = 0;
+int doorOpen[MAP_NUMBER]; //0：閉じてる　1：開いてる
 
 //関数プロトタイプ
 void initialize(void);
@@ -94,14 +111,25 @@ void initialize(void) {
 				coin[mapNumber][i].y = rand() % (HEIGHT - 2) + 1;
 			} while (map[mapNumber][coin[mapNumber][i].y][coin[mapNumber][i].x] == '#');
 
-			coinAlive[i] = 1;
+			coinAlive[mapNumber][i] = 1;
 		}
+	}
+
+	//ドアの初期化
+	for (int i = 0; i < MAP_NUMBER; i++) {
+		doorOpen[i] = 0; //ドアをすべて閉める
 	}
 }
 
 //マップの更新
 void update_map(void) {
+	//マップ遷移
+	if (doorOpen[currentMap] && player.x == WIDTH - 3 && player.y == 1) {
+		currentMap++;
 
+		player.x = 1;
+		player.y = HEIGHT - 2;
+	}
 }
 
 //マップの描画
@@ -123,21 +151,23 @@ void draw_map(void) {
 			int coinHere = 0;
 			int remainCoin = 0;  //マップに残ってるコインがあるか記憶
 			for (int i = 0; i < COIN_COUNT; i++) {
-				if (coinAlive[i] && x == coin[currentMap][i].x && y == coin[currentMap][i].y) {
+				if (coinAlive[currentMap][i] && x == coin[currentMap][i].x && y == coin[currentMap][i].y) {
 					coinHere = 1;
 				}
 
-				if (coinAlive[i] && coin[currentMap][i].x == player.x && coin[currentMap][i].y == player.y) {
-					coinAlive[i] = 0;
+				if (coinAlive[currentMap][i] && coin[currentMap][i].x == player.x && coin[currentMap][i].y == player.y) {
+					coinAlive[currentMap][i] = 0;
 				}
 
-				if (coinAlive[i]) {
+				if (coinAlive[currentMap][i]) {
 					remainCoin++;
 				}
 			}
 
 			if (remainCoin == 0) {
-				game_running = 0;
+				//game_running = 0;
+				update_map();
+				doorOpen[currentMap] = 1;
 			}
 
 			if (x == player.x && y == player.y) {
@@ -146,8 +176,11 @@ void draw_map(void) {
 			else if (enemyHere) {
 				printf("E");
 			}
-			else if(coinHere){
+			else if (coinHere) {
 				printf("$");
+			}
+			else if (x == WIDTH - 3 && y == 1 && doorOpen[currentMap]) {
+				printf("D");
 			}
 			else {
 				printf("%c", map[currentMap][y][x]);
@@ -212,13 +245,11 @@ void handle_input(void) {
 int main(void) {
 	initialize();
 
-	update_map();
 	draw_map();
 	//printf("\n\n0で終了");
 
 	while (game_running) {
 		handle_input();
-		update_map();
 		draw_map();
 	}
 
