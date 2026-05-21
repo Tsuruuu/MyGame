@@ -12,6 +12,14 @@ $：コイン。ランダムに配置される。これを取らないと次のマップに進めない
 D：別のマップに行くためのドア
 */
 
+// ------ 操作方法 ---------//
+/*
+w：上
+a：左
+s：下
+d：右
+*/
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +54,7 @@ char map[MAP_NUMBER][HEIGHT][WIDTH] = {
 	"#....................#...........#",
 	"##################################"
 	},
-	//マップ0
+	//マップ1
 	{
 	"##################################",
 	"#................................#",
@@ -81,11 +89,6 @@ void initialize(void) {
 	srand((unsigned)time(NULL));
 
 	//マップの生成
-	for (int y = 0; y < HEIGHT; y++) {
-		for (int x = 0; x < WIDTH; x++) {
-
-		}
-	}
 
 	//敵の初期化
 	for (int mapNumber = 0; mapNumber < MAP_NUMBER; mapNumber++) {
@@ -123,12 +126,43 @@ void initialize(void) {
 
 //マップの更新
 void update_map(void) {
+	int remainCoin = 0;
+
+	for (int i = 0; i < COIN_COUNT; i++) {
+		if (coinAlive[currentMap][i] && coin[currentMap][i].x == player.x && coin[currentMap][i].y == player.y) {
+			coinAlive[currentMap][i] = 0;
+		}
+
+		if (coinAlive[currentMap][i]) {
+			remainCoin++;
+		}
+	}
+
+	if (remainCoin == 0) {
+		//game_running = 0;
+		doorOpen[currentMap] = 1;
+	}
+
 	//マップ遷移
 	if (doorOpen[currentMap] && player.x == WIDTH - 3 && player.y == 1) {
+
+		if (currentMap >= MAP_NUMBER - 1) {
+			game_running = 0;
+			return;
+		}
+
 		currentMap++;
 
 		player.x = 1;
 		player.y = HEIGHT - 2;
+
+		return;
+	}
+
+	for (int i = 0; i < ENEMY_COUNT; i++) {
+		if (player.x == enemy[currentMap][i].x && player.y == enemy[currentMap][i].y) {
+			game_running = 0;
+		}
 	}
 }
 
@@ -154,20 +188,6 @@ void draw_map(void) {
 				if (coinAlive[currentMap][i] && x == coin[currentMap][i].x && y == coin[currentMap][i].y) {
 					coinHere = 1;
 				}
-
-				if (coinAlive[currentMap][i] && coin[currentMap][i].x == player.x && coin[currentMap][i].y == player.y) {
-					coinAlive[currentMap][i] = 0;
-				}
-
-				if (coinAlive[currentMap][i]) {
-					remainCoin++;
-				}
-			}
-
-			if (remainCoin == 0) {
-				//game_running = 0;
-				update_map();
-				doorOpen[currentMap] = 1;
 			}
 
 			if (x == player.x && y == player.y) {
@@ -179,7 +199,7 @@ void draw_map(void) {
 			else if (coinHere) {
 				printf("$");
 			}
-			else if (x == WIDTH - 3 && y == 1 && doorOpen[currentMap]) {
+			else if (currentMap < MAP_NUMBER - 1 && x == WIDTH - 3 && y == 1 && doorOpen[currentMap]) {
 				printf("D");
 			}
 			else {
@@ -250,6 +270,12 @@ int main(void) {
 
 	while (game_running) {
 		handle_input();
+		update_map();
+
+		if (!game_running) {
+			break;
+		}
+
 		draw_map();
 	}
 
